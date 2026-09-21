@@ -27,6 +27,7 @@ public class ProdutoDAO {
 	// RowMapper: Mapeia apenas as colunas que sua classe possui
 	private final RowMapper<Produto> produtoRowMapper = (rs, rowNum) -> {
 		Produto produto = new Produto();
+		produto.setId(rs.getLong("id"));
 		produto.setNome(rs.getString("nome"));
 		produto.setPreco(rs.getBigDecimal("preco"));
 		return produto;
@@ -43,7 +44,7 @@ public class ProdutoDAO {
 	// 2. READ ALL (Buscar Todos)
 	public List<Produto> buscarTodos() {
 		String sql = """
-                SELECT nome, preco FROM produto
+                SELECT id, nome, preco FROM produto
                 """;
 		return jdbcTemplate.query(sql, produtoRowMapper);
 	}
@@ -51,7 +52,7 @@ public class ProdutoDAO {
 	// 3. READ BY ID (Buscar por ID)
 	public Optional<Produto> buscarPorId(Long id) {
 		String sql = """
-                SELECT nome, preco FROM produto WHERE id = ?
+                SELECT id, nome, preco FROM produto WHERE id = ?
                 """;
 		List<Produto> produtos = jdbcTemplate.query(sql, produtoRowMapper, id);
 		return produtos.stream().findFirst();
@@ -76,4 +77,3 @@ public class ProdutoDAO {
 		jdbcTemplate.update(sql, id);
 	}
 }
-
