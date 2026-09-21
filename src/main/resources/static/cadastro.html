@@ -86,6 +86,7 @@
             <tr>
                 <th scope="col">Nome</th>
                 <th scope="col" class="text-end">Preço</th>
+                <th scope="col" class="text-center" style="width: 100px;">Ações</th>
             </tr>
             </thead>
             <tbody id="listaProdutos"></tbody>
@@ -142,12 +143,22 @@
             const linha = document.createElement("tr");
             const colunaNome = document.createElement("td");
             const colunaPreco = document.createElement("td");
+            const colunaAcoes = document.createElement("td");
 
             colunaNome.textContent = produto.nome ?? "";
             colunaPreco.textContent = formatarPreco(produto.preco);
             colunaPreco.classList.add("text-end");
-
-            linha.append(colunaNome, colunaPreco);
+            //botão excluir
+            colunaAcoes.classList.add("text-center");
+            const botaoDeletar = document.createElement("button");
+            botaoDeletar.className = "btn btn-danger btn-sm";
+            botaoDeletar.textContent = "Excluir";
+            // Dispara a função de deletar ao clicar
+            botaoDeletar.addEventListener("click", () => deletarProduto(produto.id));
+            
+            colunaAcoes.appendChild(botaoDeletar);
+            
+            linha.append(colunaNome, colunaPreco, colunaAcoes);
             fragmento.appendChild(linha);
         });
 
@@ -179,7 +190,36 @@
             botaoAtualizar.disabled = false;
         }
     }
-
+    
+    async function deletarProduto(id) {
+        if (!confirm("Tem certeza que deseja excluir este produto?")) {
+            return;
+        }
+        
+        mensagem.className = "mt-3 mb-0 text-secondary";
+        mensagem.textContent = "Excluindo produto...";
+        
+        try {
+            const resposta = await fetch(`/api/produtos/${id}`, {
+                method: "DELETE"
+            });
+            
+            if (!resposta.ok) {
+                const textoErro = await resposta.text();
+                throw new Error(textoErro || "Erro ao excluir o produto.");
+            }
+            
+            mensagem.className = "mt-3 mb-0 text-success";
+            mensagem.textContent = "Produto excluído com sucesso!";
+            
+            // Recarrega a lista atualizada do backend
+            await carregarProdutos();
+        } catch (erro) {
+            mensagem.className = "mt-3 mb-0 text-danger";
+            mensagem.textContent = erro.message;
+        }
+    }
+    
     formulario.addEventListener("submit", async (evento) => {
         evento.preventDefault();
 
