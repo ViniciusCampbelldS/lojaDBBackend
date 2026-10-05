@@ -1,87 +1,99 @@
 package br.com.loja.controller;
 
-import br.com.loja.form.ProdutoForm;
-import br.com.loja.service.CategoriaService;
-import br.com.loja.service.ProdutoService;
-import jakarta.validation.Valid;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
+import br.com.loja.dao.ProdutoDAO;
+import br.com.loja.model.Produto;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.bind.annotation.RestController;
 
-@Controller
-@RequestMapping("/produtos")
+import java.math.BigDecimal;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/produtos")
 public class ProdutoController {
 
-    private final ProdutoService produtoService;
-    private final CategoriaService categoriaService;
+    private final ProdutoDAO produtoDAO;
 
-    public ProdutoController(ProdutoService produtoService,
-                             CategoriaService categoriaService) {
-        this.produtoService = produtoService;
-        this.categoriaService = categoriaService;
+    public ProdutoController(ProdutoDAO produtoDAO) {
+        this.produtoDAO = produtoDAO;
     }
 
     @GetMapping
-    public String listar(Model model) {
-        model.addAttribute("produtos", produtoService.listar());
-        return "produtos/lista";
+    public ResponseEntity<List<Produto>> listar() {
+        return ResponseEntity.ok(produtoDAO.buscarTodos());
     }
 
-    @GetMapping("/novo")
-    public String novo(Model model) {
-        prepararFormulario(model, new ProdutoForm());
-        return "produtos/formulario";
+    @GetMapping("/{id}")
+    public ResponseEntity<Produto> buscarPorId(@PathVariable Long id) {
+        return produtoDAO.buscarPorId(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/editar/{id}")
-    public String editar(@PathVariable Long id, Model model) {
-        ProdutoForm form = ProdutoForm.from(produtoService.buscar(id));
-        prepararFormulario(model, form);
-        return "produtos/formulario";
-    }
-
-    @PostMapping("/salvar")
-    public String salvar(
-            @Valid @ModelAttribute("produtoForm") ProdutoForm form,
-            BindingResult bindingResult,
-            Model model,
-            RedirectAttributes redirectAttributes) {
-
-        if (bindingResult.hasErrors()) {
-            prepararFormulario(model, form);
-            return "produtos/formulario";
+    @PostMapping
+    public ResponseEntity<String> cadastrar(@RequestBody Produto produto) {
+        if (produto.getNome() == null
+                || produto.getNome().isBlank()
+                || produto.getNome().trim().length() > 100) {
+            return ResponseEntity.badRequest()
+                    .body("O nome não pode estar em branco nem ter mais de 100 caracteres.");
         }
 
-        produtoService.salvar(form);
-        redirectAttributes.addFlashAttribute(
-            "sucesso",
-            form.getId() == null
-                ? "Produto cadastrado com sucesso."
-                : "Produto atualizado com sucesso."
-        );
+        BigDecimal preco = produto.getPreco();
+        if (preco == null
+                || preco.signum() <= 0
+                || preco.compareTo(new BigDecimal("9999999999.99")) > 0
+                || preco.stripTrailingZeros().scale() > 2) {
+            return ResponseEntity.badRequest()
+                    .body("Informe um preço positivo até 9999999999.99 com até duas casas decimais.");
+        }
 
-        return "redirect:/produtos";
+        produto.setNome(produto.getNome().trim());
+        produtoDAO.inserir(produto);
+        return ResponseEntity.ok("Produto cadastrado com sucesso.");
     }
 
-    @PostMapping("/excluir/{id}")
-    public String excluir(@PathVariable Long id,
-                          RedirectAttributes redirectAttributes) {
-        produtoService.excluir(id);
-        redirectAttributes.addFlashAttribute(
-            "sucesso",
-            "Produto excluído com sucesso."
-        );
-        return "redirect:/produtos";
+    @PutMapping("/{id}")
+    public ResponseEntity<String> atualizar(@PathVariable Long id, @RequestBody Produto produto) {
+        if (produto.getNome() == null
+                || produto.getNome().isBlank()
+                || produto.getNome().trim().length() > 100) {
+            return ResponseEntity.badRequest()
+                    .body("O nome não pode estar em branco nem ter mais de 100 caracteres.");
+        }
+
+        BigDecimal preco = produto.getPreco();
+        if (preco == null
+                || preco.signum() <= 0
+                || preco.compareTo(new BigDecimal("9999999999.99")) > 0
+                || preco.stripTrailingZeros().scale() > 2) {
+            return ResponseEntity.badRequest()
+                    .body("Informe um preço positivo até 9999999999.99 com até duas casas decimais.");
+        }
+
+        if (produtoDAO.buscarPorId(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        produto.setNome(produto.getNome().trim());
+        produtoDAO.atualizar(id, produto);
+        return ResponseEntity.ok("Produto atualizado com sucesso.");
     }
 
-    private void prepararFormulario(Model model, ProdutoForm form) {
-        model.addAttribute("produtoForm", form);
-        model.addAttribute("categorias", categoriaService.listar());
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deletar(@PathVariable Long id) {
+        if (produtoDAO.buscarPorId(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        produtoDAO.deletar(id);
+        return ResponseEntity.ok("Produto deletado com sucesso.");
     }
 }

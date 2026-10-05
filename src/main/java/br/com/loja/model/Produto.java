@@ -13,26 +13,22 @@ public class Produto {
 
 	@Column(nullable = false, length = 100)
 	private String nome;
-
-	@Column(length = 255)
-	private String descricao;
-
 	@Column(nullable = false, precision = 10, scale = 2)
 	private BigDecimal preco;
 
 	@Column(nullable = false)
 	private Integer quantidade;
+	@Column(nullable = false, length = 999)
+	private String descricao;
+
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "categoria_id", nullable = false)
 	private Categoria categoria;
 
 	// Construtores:
-	public Produto() {
-	}
-
-	public Produto(String nome, String descricao, BigDecimal preco,
-				   Integer quantidade, Categoria categoria) {
+	public Produto(){}
+	public Produto(String nome, BigDecimal preco,  Integer quantidade, String descricao) {
 		this.nome = nome;
 		this.descricao = descricao;
 		this.preco = preco;
@@ -41,14 +37,12 @@ public class Produto {
 	}
 
 	// Setters:
-	public void setId(Long id) {
+	public void setId(Long id){
 		this.id = id;
 	}
-
-	public void setNome(String nome) {
+	public void setNome(String nome){
 		this.nome = nome;
 	}
-
 	public void setDescricao(String descricao) {
 		this.descricao = descricao;
 	}
